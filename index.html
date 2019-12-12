@@ -1,0 +1,67 @@
+<html>
+  <head>
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script src="scripts/checkers-engine.js"></script>
+    <style>
+      #boardContainer {
+        float: left;
+      }
+      #menuContainer {
+        padding: 0 10px 10px 10px;
+        float: left;
+        background-color: #313131;
+        height: 580px;
+        color: #fff;
+      }
+      body {
+        background-image: url("images/bg.jpg");
+        background-size: 100%;
+      }
+      #checkersBoard {
+        border: 15px solid #000;
+      }
+      #player_choose {
+        width: 100%;
+        height: 30px;
+      }
+      button {
+        width: 100%;
+        height: 30px;
+      }
+    </style>
+  </head>
+  <body>
+    <div style="width: 900px;margin: 0 auto">
+      <div id="boardContainer">
+        <svg id="checkersBoard" width="560" height="560"></svg>
+      </div>
+      <div id="menuContainer">
+        <div id="scoreBoardContainer"></div>
+        <button
+          id="btnReplay"
+          onclick="replayAll({x: 0, y: 0}, 70, boardCanvas)"
+        >
+          View Replay</button
+        ><br /><br />
+
+        Choose your color:
+        <br />
+        <select id="player_choose" onchange="change_pieces()">
+          <option value="0" selected="selected">Black</option>
+          <option value="1">Red</option>
+        </select>
+        <br />
+        <br />
+        <button onclick="startGame({x: 0, y: 0}, 70, boardCanvas);">
+          Start New Game
+        </button>
+      </div>
+      <div style="clear:both"></div>
+    </div>
+
+    <script type="text/javascript">
+      var boardCanvas = d3.select("#checkersBoard");
+      startGame({ x: 0, y: 0 }, 70, boardCanvas);
+    </script>
+  </body>
+</html>
