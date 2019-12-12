@@ -10,6 +10,7 @@ var INFINITY = 10000;
 var NEG_INFINITY = -10000;
 var cell_width = 0;
 var board_origin = 0;
+var maxDepth = 8;
 
 function initializeBoard() {
   var initialBoard = [
@@ -82,6 +83,7 @@ function startGame(origin, cellWidth, boardCanvas) {
   currentBoard.ui = true;
   showBoardState();
   change_pieces();
+  resetLog();
 }
 
 function replayAll(origin, cellWidth, boardCanvas) {
@@ -400,6 +402,7 @@ function dragged(d) {
 
   if (obligation(d, "start")) {
     console.log("You must capture the right piece");
+    addLog("You must capture the right piece");
     return;
   }
   var c = d3.select(this);
@@ -573,7 +576,7 @@ function drawBoard(origin, cellWidth, boardCanvas) {
     .attr("height", 70);
 
   boardCanvas
-    .append("defs")
+    .select("defs")
     .append("pattern")
     .attr("id", "black")
     .attr("patternUnits", "userSpaceOnUse")
@@ -585,7 +588,7 @@ function drawBoard(origin, cellWidth, boardCanvas) {
     .attr("height", 70);
 
   boardCanvas
-    .append("defs")
+    .select("defs")
     .append("pattern")
     .attr("id", "redKing")
     .attr("patternUnits", "userSpaceOnUse")
@@ -597,7 +600,7 @@ function drawBoard(origin, cellWidth, boardCanvas) {
     .attr("height", 70);
 
   boardCanvas
-    .append("defs")
+    .select("defs")
     .append("pattern")
     .attr("id", "blackKing")
     .attr("patternUnits", "userSpaceOnUse")
@@ -627,17 +630,6 @@ function drawBoard(origin, cellWidth, boardCanvas) {
     .style("stroke", "black")
     .style("stroke-width", "1px");
 
-  let i = 1;
-  while (i <= 64) {
-    boardCanvas.select("rect:nth-child(" + i + ")").style("fill", "black");
-    if (i % 8 == 7) {
-      i += 3;
-    } else if (i % 8 == 0) {
-      i += 1;
-    } else {
-      i += 2;
-    }
-  }
   //Draw pieces
   var dragEndedDimensions = function(d) {
     node = d3.select(this);
@@ -679,26 +671,51 @@ function drawBoard(origin, cellWidth, boardCanvas) {
   d3.select("#divScoreboard").remove();
   d3.select("#scoreBoardContainer")
     .append("div")
-    .attr("id", "divScoreboard")
-    .style("font-size", "36")
-    .html("SCOREBOARD");
+    .attr("id", "divScoreboard");
+  /*.style("font-size", "36")
+    .html("Score");*/
+
+  /*d3.select("#divScoreboard")
+    .append("div")
+    .style("font-size", "30")
+    .attr("id", "winner");*/
 
   d3.select("#divScoreboard")
     .append("div")
-    .style("font-size", "24")
-    .attr("id", "winner");
+    .attr("id", "redScoreHeading")
+    .style("font-size", "25")
+    .html("Player Red");
 
   d3.select("#divScoreboard")
     .append("div")
     .attr("id", "redScore")
-    .style("font-size", "18")
-    .html("Red: 12");
+    .style("font-size", "15")
+    .html("Remaining: 12 <br> Captured: 0 <br><br>");
+
+  d3.select("#divScoreboard")
+    .append("div")
+    .attr("id", "redScoreHeading")
+    .style("font-size", "25")
+    .html("Player Black");
 
   d3.select("#divScoreboard")
     .append("div")
     .attr("id", "blackScore")
-    .style("font-size", "18")
-    .html("Black: 12");
+    .style("font-size", "15")
+    .html("Remaining: 12 <br> Captured: 0 <br><br>");
+
+  let i = 1;
+  while (i <= 64) {
+    boardCanvas.selectAll("rect:nth-child(" + i + ")").style("fill", "black");
+
+    if (i % 8 == 7) {
+      i += 3;
+    } else if (i % 8 == 0) {
+      i += 1;
+    } else {
+      i += 2;
+    }
+  }
 
   return boardState;
 }
@@ -719,10 +736,34 @@ function showImage() {
   });
 }
 
+function addLog(text) {
+  let messageBody = document.getElementById("log");
+  messageBody.innerHTML += text + "<br>";
+
+  messageBody.scrollTop = messageBody.scrollHeight - messageBody.clientHeight;
+}
+
+function resetLog() {
+  let messageBody = document.getElementById("log");
+  messageBody.innerHTML = "";
+}
+
 function updateScoreboard() {
   var pieceCount = getPieceCount(currentBoard);
-  var redLabel = "Red: " + pieceCount.red;
-  var blackLabel = "Black: " + pieceCount.black;
+  var pieceCapturedRed = 12 - pieceCount.red;
+  var pieceCapturedBlack = 12 - pieceCount.black;
+  var redLabel =
+    "Remaining: " +
+    pieceCount.red +
+    " <br> Captured:" +
+    pieceCapturedRed +
+    "<br><br>";
+  var blackLabel =
+    "Remaining: " +
+    pieceCount.black +
+    " <br> Captured:" +
+    pieceCapturedBlack +
+    "<br><br>";
 
   d3.select("#redScore").html(redLabel);
   d3.select("#blackScore").html(blackLabel);
@@ -730,16 +771,16 @@ function updateScoreboard() {
   var winner = getWinner(currentBoard);
   var winnerLabel = "";
   if (winner === player) {
-    winnerLabel = "Red Wins!!";
+    winnerLabel = "You Won!";
   } else if (winner === computer) {
-    winnerLabel = "Black Wins!!";
+    winnerLabel = "You Lost!";
   }
 
   if (winner != 0) {
     d3.select("#btnReplay").style("display", "inline");
   }
 
-  d3.select("#winner").html(winnerLabel);
+  addLog(winnerLabel);
 }
 
 function integ(num) {
@@ -992,6 +1033,11 @@ function select_random_move(moves) {
   return selected_move;
 }
 
+function setDepth() {
+  value = document.getElementById("depth_value").value;
+  maxDepth = value;
+}
+
 function alpha_beta_search(calc_board, limit) {
   var alpha = NEG_INFINITY;
   var beta = INFINITY;
@@ -1026,7 +1072,7 @@ function computerMove() {
   var simulated_board = copy_board(currentBoard);
 
   // Run algorithm to select next move
-  var selected_move = alpha_beta_search(simulated_board, 8);
+  var selected_move = alpha_beta_search(simulated_board, maxDepth);
   console.log(
     "best move: " +
       selected_move.from.col +
