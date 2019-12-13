@@ -648,7 +648,7 @@ function drawBoard(origin, cellWidth, boardCanvas) {
     .data(pieces)
     .enter()
     .append("circle")
-    .attr("r", cellWidth / 2)
+    .attr("r", cellWidth / 3)
     .attr("cx", function(d) {
       var x = mapCellToCoordinates(origin, cellWidth, d).x;
       return x + cellWidth / 2;
@@ -797,7 +797,7 @@ function sign(num) {
   else return 1;
 }
 
-function drawText(data) {
+/*function drawText(data) {
   boardCanvas
     .append("g")
     .selectAll("text")
@@ -819,14 +819,14 @@ function drawText(data) {
     .text(function(d) {
       /*if (d.state === red) return "R"; 
 									else if (d.state === black) return "B"; 
-									else*/ if (
+									else if (
         d.state === redKing ||
         d.state === blackKing
       )
         return "K";
       else return "";
     });
-}
+}*/
 
 function showBoardState() {
   d3.selectAll("text").each(function(d, i) {
@@ -836,7 +836,7 @@ function showBoardState() {
   var cells = currentBoard.cells;
   var pieces = currentBoard.pieces;
   //drawText(cells);
-  drawText(pieces);
+  //drawText(pieces);
 }
 
 /* COMPUTER AI FUNCTIONS */
