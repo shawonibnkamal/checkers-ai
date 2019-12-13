@@ -397,8 +397,8 @@ function obligation(d, type) {
   return have_to_capt;
 }
 function dragged(d) {
-  console.log(d.state + " " + Math.floor(d.state));
-  if (d.state != player && Math.floor(d.state) != player) return;
+  console.log(d.state + " " + Math.round(d.state));
+  if (d.state != player && Math.round(d.state) != player) return;
 
   if (obligation(d, "start")) {
     console.log("You must capture the right piece");
@@ -440,7 +440,7 @@ function hideCircle(cell, moveNum) {
 }
 
 function dragEnded(origin, width, node, d) {
-  if (d.state != player && Math.floor(d.state) != player) return;
+  if (d.state != player && Math.round(d.state) != player) return;
   var cell = mapCoordinatesToCell(origin, width, currentBoard.cells, d.x, d.y);
   var from = d;
   var to = cell;
