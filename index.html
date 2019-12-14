@@ -1,5 +1,6 @@
 <html>
   <head>
+    <!--D3 library for svg canvas-->
     <script src="d3.js"></script>
     <script src="game-script.js"></script>
     <link
@@ -28,7 +29,7 @@
         background-size: 100%;
         font-family: "Lilita One", cursive;
       }
-      #checkersBoard {
+      #boardInterface {
         border: 15px solid #000;
       }
       select {
@@ -56,13 +57,13 @@
   <body>
     <div style="width: 900px;margin: 0 auto">
       <div id="boardContainer">
-        <svg id="checkersBoard" width="560" height="560"></svg>
+        <svg id="boardInterface" width="560" height="560"></svg>
       </div>
       <div id="menuContainer">
         <div id="scoreBoardContainer"></div>
         <button
           id="btnReplay"
-          onclick="replayAll({x: 0, y: 0}, 70, boardCanvas)"
+          onclick="replayAll({x: 0, y: 0}, 70, boardInterface)"
         >
           View Replay</button
         ><br /><br />
@@ -84,8 +85,8 @@
           <option value="3">3</option>
           <option value="4">4</option>
           <option value="5">5</option>
-          <option value="6" selected="selected">6</option>
-          <option value="7">7</option>
+          <option value="6">6</option>
+          <option value="7" selected="selected">7</option>
           <option value="8">8</option>
           <option value="9">9</option>
           <option value="10">10</option>
@@ -107,7 +108,7 @@
         <br />
         <br />
 
-        <button onclick="startGame({x: 0, y: 0}, 70, boardCanvas);">
+        <button onclick="initiateGame({x: 0, y: 0}, 70, boardInterface);">
           Reset
         </button>
         <div id="log"></div>
@@ -116,8 +117,8 @@
     </div>
 
     <script type="text/javascript">
-      var boardCanvas = d3.select("#checkersBoard");
-      startGame({ x: 0, y: 0 }, 70, boardCanvas);
+      var boardInterface = d3.select("#boardInterface");
+      initiateGame({ x: 0, y: 0 }, 70, boardInterface);
     </script>
   </body>
 </html>

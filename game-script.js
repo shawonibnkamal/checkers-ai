@@ -1,3 +1,9 @@
+//initialize board
+var activeBoard = {};
+var gridSize = 0;
+var boardOriginPos = 0;
+var maxDepth = 8;
+
 //initialize value for players
 var black = -1;
 var blackKing = -1.1;
@@ -7,13 +13,7 @@ var clear = 0;
 
 //Player colors
 var player = red;
-var computer = black;
-
-//initialize board
-var activeBoard = {};
-var gridSize = 0;
-var boardOriginPos = 0;
-var maxDepth = 8;
+var cpu = black;
 
 // Function used to create a new board that we are going to copy in future
 function createBoard() {
@@ -29,8 +29,8 @@ function createBoard() {
   ];
 
   // Creating grids and the pieces that are going to be placed on the board
-  let grids = new Array();
-  let pieces = new Array();
+  let grids = [];
+  let pieces = [];
   for (let i = 0; i < boardInit.length; i++) {
     let row = boardInit[i];
     for (let j = 0; j < row.length; j++) {
@@ -46,16 +46,16 @@ function createBoard() {
 
   return { grids: grids, pieces: pieces, turn: black };
 }
-// Function to change wich player the human is and wich player the computer is
-function change_pieces() {
+// Function to change wich player the human is and wich player the cpu is
+function changePieces() {
   // Riding the html select 1 is for red and 0 is for blacks
   // Black is choose by default
   if (document.getElementById("player_choose").value == 1) {
     player = red;
-    computer = black;
+    cpu = black;
   } else {
     player = black;
-    computer = red;
+    cpu = red;
   }
 }
 // Function to transform the grid array to real coordinates
@@ -86,21 +86,21 @@ function mapCoordinatesTogrid(origin, width, grids, x, y) {
   return grid;
 }
 // This function is to reset all the game (positions, score, messages, states, etc)
-function startGame(origin, gridWidth, boardCanvas) {
+function initiateGame(origin, gridWidth, boardInterface) {
   movePiece.moves = [];
   d3.select("#btnReplay").style("display", "none");
   gridSize = gridWidth;
   boardOriginPos = origin;
-  activeBoard = drawBoard(origin, gridWidth, boardCanvas);
+  activeBoard = drawBoard(origin, gridWidth, boardInterface);
   activeBoard.ui = true;
-  showBoardState();
-  change_pieces();
+  showGameState();
+  changePieces();
   resetLog();
 }
 // Function to execute an action
-function movePiece(boardState, piece, fromgrid, togrid, moveNum) {
-  console.log(boardState);
-  if (boardState.ui) {
+function movePiece(GameState, piece, fromgrid, togrid, moveNum) {
+  //console.log(GameState);
+  if (GameState.ui) {
     if (movePiece.moves == null) {
       movePiece.moves = [];
     }
@@ -111,9 +111,9 @@ function movePiece(boardState, piece, fromgrid, togrid, moveNum) {
     });
   }
   // This is a call to the fuction in case we could capture more than one piece according with the rules
-  let captureedPiece = getcaptureedPiece(
-    boardState.grids,
-    boardState.pieces,
+  let capturedPiece = getcapturedPiece(
+    GameState.grids,
+    GameState.pieces,
     fromgrid,
     togrid
   );
@@ -124,62 +124,58 @@ function movePiece(boardState, piece, fromgrid, togrid, moveNum) {
   let toIndex = getgridIndex(togrid.row, togrid.col);
   // Updating the movement in the current board
   if ((togrid.row === 0 || togrid.row === 8) && Math.abs(piece.state) === 1) {
-    boardState.grids[toIndex].state = piece.state * 1.1;
+    GameState.grids[toIndex].state = piece.state * 1.1;
   } else {
-    boardState.grids[toIndex].state = piece.state;
+    GameState.grids[toIndex].state = piece.state;
   }
-  boardState.grids[fromIndex].state = clear;
+  GameState.grids[fromIndex].state = clear;
   if ((togrid.row === 0 || togrid.row === 7) && Math.abs(piece.state) === 1) {
     piece.state = piece.state * 1.1;
   }
   piece.col = togrid.col;
   piece.row = togrid.row;
-  // Calling the function to move a piece automatically if is computer turn
-  if (boardState.ui && (boardState.turn === computer || moveNum > 1)) {
+  // Calling the function to move a piece automatically if is cpu turn
+  if (GameState.ui && (GameState.turn === cpu || moveNum > 1)) {
     moveCircle(togrid, moveNum);
   }
   // Getting the position wgere we are going to have the next movement automatically
-  if (captureedPiece != null) {
-    let captureedIndex = getPieceIndex(
-      boardState.pieces,
-      captureedPiece.row,
-      captureedPiece.col
+  if (capturedPiece != null) {
+    let capturedIndex = getPieceIndex(
+      GameState.pieces,
+      capturedPiece.row,
+      capturedPiece.col
     );
-    let originialcapturePieceState = captureedPiece.state;
-    captureedPiece.state = 0;
+    let originialcapturePieceState = capturedPiece.state;
+    capturedPiece.state = 0;
 
-    let gridIndex = getgridIndex(captureedPiece.row, captureedPiece.col);
-    let captureedgrid = boardState.grids[gridIndex];
-    captureedgrid.state = clear;
-    boardState.pieces[captureedIndex].lastCol =
-      boardState.pieces[captureedIndex].col;
-    boardState.pieces[captureedIndex].lastRow =
-      boardState.pieces[captureedIndex].row;
-    boardState.pieces[captureedIndex].col = -1;
-    boardState.pieces[captureedIndex].row = -1;
+    let gridIndex = getgridIndex(capturedPiece.row, capturedPiece.col);
+    let capturedgrid = GameState.grids[gridIndex];
+    capturedgrid.state = clear;
+    GameState.pieces[capturedIndex].lastCol =
+      GameState.pieces[capturedIndex].col;
+    GameState.pieces[capturedIndex].lastRow =
+      GameState.pieces[capturedIndex].row;
+    GameState.pieces[capturedIndex].col = -1;
+    GameState.pieces[capturedIndex].row = -1;
     // We have to hide the circle we use to animate the second capture in the current activated board
-    if (boardState.ui) {
-      hideCircle(captureedgrid, moveNum);
+    if (GameState.ui) {
+      hideCircle(capturedgrid, moveNum);
     }
     // Is the board we are analizing is the activate or current board
-    if (boardState.ui) {
+    if (GameState.ui) {
       movePiece.moves.push({
         piece: {
-          col: captureedPiece.col,
-          row: captureedPiece.row,
+          col: capturedPiece.col,
+          row: capturedPiece.row,
           state: originialcapturePieceState
         },
-        from: { col: captureedgrid.col, row: captureedgrid.row },
+        from: { col: capturedgrid.col, row: capturedgrid.row },
         to: { col: -1, row: -1 }
       });
     }
 
     // In the case there are more pieces to capture in one single movement
-    let more_moves = get_available_piece_moves(
-      boardState,
-      piece,
-      boardState.turn
-    );
+    let more_moves = getLegalMoves(GameState, piece, GameState.turn);
     let another_move = null;
     for (let i = 0; i < more_moves.length; i++) {
       more_move = more_moves[i];
@@ -190,21 +186,21 @@ function movePiece(boardState, piece, fromgrid, togrid, moveNum) {
     }
     if (another_move != null) {
       moveNum += 1;
-      boardState = movePiece(
-        boardState,
+      GameState = movePiece(
+        GameState,
         piece,
         another_move.from,
         another_move.to,
         moveNum
       );
       // Updating all the movements we made
-      if (boardState.ui && boardState.turn === player) {
-        boardState.numPlayerMoves += moveNum;
+      if (GameState.ui && GameState.turn === player) {
+        GameState.numPlayerMoves += moveNum;
       }
     }
   }
 
-  return boardState;
+  return GameState;
 }
 // Getting the index of x and y like indexOf
 function getgridIndex(row, col) {
@@ -225,10 +221,10 @@ function getPieceIndex(pieces, row, col) {
   return index;
 }
 // How many pieces we have in the board helps to know who is winning
-function getPieceCount(boardState) {
+function getPieceCount(GameState) {
   let numRed = 0;
   let numBlack = 0;
-  let pieces = boardState.pieces;
+  let pieces = GameState.pieces;
   for (let i = 0; i < pieces.length; i++) {
     let piece = pieces[i];
     if (piece.col >= 0 && piece.row >= 0) {
@@ -243,14 +239,14 @@ function getPieceCount(boardState) {
   return { red: numRed, black: numBlack };
 }
 // Get the score to know who is winning
-function getScore(boardState) {
-  let pieceCount = getPieceCount(boardState);
+function getScore(GameState) {
+  let pieceCount = getPieceCount(GameState);
   let score = pieceCount.red - pieceCount.black;
   return score;
 }
 // Get who wins
-function getWinner(boardState) {
-  let pieceCount = getPieceCount(boardState);
+function getWinner(GameState) {
+  let pieceCount = getPieceCount(GameState);
   if (pieceCount.red > 0 && pieceCount.black === 0) {
     return red;
   } else if (pieceCount.black > 0 && pieceCount.red === 0) {
@@ -265,7 +261,7 @@ function dragStarted(d) {
 // Know if the plaer have to capture a piece according with the rules
 function obligation(d, type) {
   let have_to_capt = true;
-  let posible_movemenst = get_available_moves(player, activeBoard);
+  let posible_movemenst = getAvailableMoves(player, activeBoard);
   let movements = [];
   for (let i = 0; i < posible_movemenst.length; i++) {
     if (posible_movemenst[i].move_type == "capture") {
@@ -347,7 +343,7 @@ function dragEnded(origin, width, node, d) {
     to = from;
   }
 
-  console.log(to);
+  //console.log(to);
   // We analize if movement is legal and if not we undo the action
   let legal = isMoveLegal(activeBoard.grids, activeBoard.pieces, d, from, to);
   let index = getgridIndex(d.row, d.col);
@@ -372,18 +368,18 @@ function dragEnded(origin, width, node, d) {
       .attr("cy", (d.y = gridCoordinates.y + width / 2));
 
     let score = getScore(activeBoard);
-    showBoardState();
+    showGameState();
 
-    activeBoard.turn = computer;
+    activeBoard.turn = cpu;
 
-    // Computer's move
+    // cpu's move
     let delayCallback = function() {
-      // We analize if the player wins if not we let the computer move
+      // We analize if the player wins if not we let the cpu move
       let winner = getWinner(activeBoard);
       if (winner != 0) {
         activeBoard.gameOver = true;
       } else {
-        computerMove();
+        cpuMove();
       }
       updateScoreboard();
       return true;
@@ -395,14 +391,14 @@ function dragEnded(origin, width, node, d) {
   showImage();
 }
 // We get the postion of the piece we capture
-function getcaptureedPiece(grids, pieces, from, to) {
+function getcapturedPiece(grids, pieces, from, to) {
   let distance = { x: to.col - from.col, y: to.row - from.row };
-  if (abs(distance.x) == 2) {
-    let captureRow = from.row + sign(distance.y);
-    let captureCol = from.col + sign(distance.x);
+  if (Math.abs(distance.x) == 2) {
+    let captureRow = from.row + checkSign(distance.y);
+    let captureCol = from.col + checkSign(distance.x);
     let index = getPieceIndex(pieces, captureRow, captureCol);
-    let captureedPiece = pieces[index];
-    return captureedPiece;
+    let capturedPiece = pieces[index];
+    return capturedPiece;
   } else return null;
 }
 // Analizing if the movement is legal action
@@ -416,11 +412,11 @@ function isMoveLegal(grids, pieces, piece, from, to) {
   if (distance.x == 0 || distance.y == 0) {
     return false;
   }
-  if (abs(distance.x) != abs(distance.y)) {
+  if (Math.abs(distance.x) != Math.abs(distance.y)) {
     return false;
   }
   // Moving more than 1 square
-  if (abs(distance.x) > 2) {
+  if (Math.abs(distance.x) > 2) {
     return false;
   }
   // If the destiny is not clear
@@ -428,21 +424,21 @@ function isMoveLegal(grids, pieces, piece, from, to) {
     return false;
   }
   // If make a capture movement and there is not piece to capture
-  if (abs(distance.x) == 2) {
-    let captureedPiece = getcaptureedPiece(grids, pieces, from, to);
-    if (captureedPiece == null) {
+  if (Math.abs(distance.x) == 2) {
+    let capturedPiece = getcapturedPiece(grids, pieces, from, to);
+    if (capturedPiece == null) {
       return false;
     }
     // If the player wants to capture his own piece
     let pieceState = integ(piece.state);
-    let captureedState = integ(captureedPiece.state);
-    if (pieceState != -captureedState) {
+    let capturedState = integ(capturedPiece.state);
+    if (pieceState != -capturedState) {
       return false;
     }
   }
   if (
     integ(piece.state) === piece.state &&
-    sign(piece.state) != sign(distance.y)
+    checkSign(piece.state) != checkSign(distance.y)
   ) {
     return false;
   }
@@ -450,12 +446,12 @@ function isMoveLegal(grids, pieces, piece, from, to) {
   return true;
 }
 // Function to draw the board
-function drawBoard(origin, gridWidth, boardCanvas) {
-  let boardState = createBoard();
-  let grids = boardState.grids;
-  let pieces = boardState.pieces;
+function drawBoard(origin, gridWidth, boardInterface) {
+  let GameState = createBoard();
+  let grids = GameState.grids;
+  let pieces = GameState.pieces;
 
-  boardCanvas
+  boardInterface
     .append("defs")
     .append("pattern")
     .attr("id", "red")
@@ -467,7 +463,7 @@ function drawBoard(origin, gridWidth, boardCanvas) {
     .attr("width", 70)
     .attr("height", 70);
 
-  boardCanvas
+  boardInterface
     .select("defs")
     .append("pattern")
     .attr("id", "black")
@@ -479,7 +475,7 @@ function drawBoard(origin, gridWidth, boardCanvas) {
     .attr("width", 70)
     .attr("height", 70);
 
-  boardCanvas
+  boardInterface
     .select("defs")
     .append("pattern")
     .attr("id", "redKing")
@@ -491,7 +487,7 @@ function drawBoard(origin, gridWidth, boardCanvas) {
     .attr("width", 70)
     .attr("height", 70);
 
-  boardCanvas
+  boardInterface
     .select("defs")
     .append("pattern")
     .attr("id", "blackKing")
@@ -504,7 +500,7 @@ function drawBoard(origin, gridWidth, boardCanvas) {
     .attr("height", 70);
 
   //Drawing grid rectangles
-  boardCanvas
+  boardInterface
     .append("g")
     .selectAll("rect")
     .data(grids)
@@ -534,7 +530,7 @@ function drawBoard(origin, gridWidth, boardCanvas) {
     .on("drag", dragged)
     .on("end", dragEndedDimensions);
 
-  boardCanvas
+  boardInterface
     .append("g")
     .selectAll("circle")
     .data(pieces)
@@ -598,7 +594,9 @@ function drawBoard(origin, gridWidth, boardCanvas) {
 
   let i = 1;
   while (i <= 64) {
-    boardCanvas.selectAll("rect:nth-child(" + i + ")").style("fill", "black");
+    boardInterface
+      .selectAll("rect:nth-child(" + i + ")")
+      .style("fill", "black");
 
     if (i % 8 == 7) {
       i += 3;
@@ -609,18 +607,18 @@ function drawBoard(origin, gridWidth, boardCanvas) {
     }
   }
 
-  return boardState;
+  return GameState;
 }
 
 function showColor() {
-  boardCanvas.selectAll("circle").style("fill", function(d) {
+  boardInterface.selectAll("circle").style("fill", function(d) {
     if (d.state == red || d.state == redKing) return "#e8232a";
     else if (d.state == black || d.state == blackKing) return "#383838";
   });
 }
 
 function showImage() {
-  boardCanvas.selectAll("circle").style("fill", function(d) {
+  boardInterface.selectAll("circle").style("fill", function(d) {
     if (d.state == red) return "url(#red)";
     else if (d.state == black) return "url(#black)";
     else if (d.state == redKing) return "url(#redKing)";
@@ -664,7 +662,7 @@ function updateScoreboard() {
   let winnerLabel = "";
   if (winner === player) {
     winnerLabel = "You Won!";
-  } else if (winner === computer) {
+  } else if (winner === cpu) {
     winnerLabel = "You Lost!";
   }
 
@@ -680,48 +678,15 @@ function integ(num) {
   if (num != null) return Math.round(num);
   else return null;
 }
-// Absolute value
-function abs(num) {
-  return Math.abs(num);
-}
+
 // + or -
-function sign(num) {
+function checkSign(num) {
   if (num < 0) return -1;
   else return 1;
 }
 
-/*function drawText(data) {
-  boardCanvas
-    .append("g")
-    .selectAll("text")
-    .data(data)
-    .enter()
-    .append("text")
-    .attr("x", function(d) {
-      let x = mapgridToCoordinates(boardOriginPos, gridSize, d).x;
-      return x + gridSize / 2;
-    })
-    .attr("y", function(d) {
-      let y = mapgridToCoordinates(boardOriginPos, gridSize, d).y;
-      return y + gridSize / 2;
-    })
-    .style("fill", function(d) {
-      if (d.state === red) return "black";
-      else return "white";
-    })
-    .text(function(d) {
-      /*if (d.state === red) return "R"; 
-									else if (d.state === black) return "B"; 
-									else if (
-        d.state === redKing ||
-        d.state === blackKing
-      )
-        return "K";
-      else return "";
-    });
-  }*/
 // Function to know the current board state
-function showBoardState() {
+function showGameState() {
   d3.selectAll("text").each(function(d, i) {
     d3.select(this).style("display", "none");
   });
@@ -733,11 +698,11 @@ function showBoardState() {
 }
 
 // Function to copy the board to make possible movements
-function copy_board(board) {
+function copyBoard(board) {
   let newBoard = {};
   newBoard.ui = false;
-  let grids = new Array();
-  let pieces = new Array();
+  let grids = [];
+  let pieces = [];
 
   for (let i = 0; i < board.grids.length; i++) {
     let grid = board.grids[i];
@@ -753,8 +718,8 @@ function copy_board(board) {
   return { grids: grids, pieces: pieces, turn: board.turn };
 }
 // Function to obtain player pieces
-function get_player_pieces(player, targetBoard) {
-  player_pieces = new Array();
+function getPlayerPieces(player, targetBoard) {
+  player_pieces = [];
   for (let i = 0; i < targetBoard.pieces.length; i++) {
     let piece = targetBoard.pieces[i];
     if (
@@ -768,7 +733,7 @@ function get_player_pieces(player, targetBoard) {
   return player_pieces;
 }
 // Get index in the board
-function get_grid_index(targetBoard, col, row) {
+function getGridIndex(targetBoard, col, row) {
   let index = -1;
   for (let i = 0; i < targetBoard.grids.length; i++) {
     let grid = targetBoard.grids[i];
@@ -780,13 +745,13 @@ function get_grid_index(targetBoard, col, row) {
   return index;
 }
 // Getting available moves for a piece
-function get_available_piece_moves(targetBoard, target_piece, player) {
+function getLegalMoves(targetBoard, target_piece, player) {
   let moves = [];
   let from = target_piece;
   // Normal moves
   let x = [-1, 1];
   x.forEach(function(entry) {
-    let grid_index = get_grid_index(
+    let grid_index = getGridIndex(
       targetBoard,
       from.col + entry,
       from.row + player * 1
@@ -808,7 +773,7 @@ function get_available_piece_moves(targetBoard, target_piece, player) {
 
   x = [-2, 2];
   x.forEach(function(entry) {
-    let grid_index = get_grid_index(
+    let grid_index = getGridIndex(
       targetBoard,
       from.col + entry,
       from.row + player * 2
@@ -834,7 +799,7 @@ function get_available_piece_moves(targetBoard, target_piece, player) {
     let y = [-1, 1];
     x.forEach(function(xmove) {
       y.forEach(function(ymove) {
-        let grid_index = get_grid_index(
+        let grid_index = getGridIndex(
           targetBoard,
           from.col + xmove,
           from.row + ymove
@@ -861,7 +826,7 @@ function get_available_piece_moves(targetBoard, target_piece, player) {
     y = [-2, 2];
     x.forEach(function(xmove) {
       y.forEach(function(ymove) {
-        let grid_index = get_grid_index(
+        let grid_index = getGridIndex(
           targetBoard,
           from.col + xmove,
           from.row + ymove
@@ -887,31 +852,31 @@ function get_available_piece_moves(targetBoard, target_piece, player) {
   return moves;
 }
 // Get available all the available movements
-function get_available_moves(player, targetBoard) {
+function getAvailableMoves(player, targetBoard) {
   let moves = [];
   let move = null;
-  let player_pieces = get_player_pieces(player, targetBoard);
+  let player_pieces = getPlayerPieces(player, targetBoard);
 
   for (let i = 0; i < player_pieces.length; i++) {
     let from = player_pieces[i];
-    let piece_moves = get_available_piece_moves(targetBoard, from, player);
+    let piece_moves = getLegalMoves(targetBoard, from, player);
     moves.push.apply(moves, piece_moves);
   }
 
-  let capture_moves = [];
+  let captureMoves = [];
   for (let i = 0; i < moves.length; i++) {
     let move = moves[i];
     if (move.move_type == "capture") {
-      capture_moves.push(move);
+      captureMoves.push(move);
     }
   }
-  if (capture_moves.length > 0) {
-    moves = capture_moves;
+  if (captureMoves.length > 0) {
+    moves = captureMoves;
   }
   return moves;
 }
 //If we want a random move in the case we have many equal evaluated movements
-function select_random_move(moves) {
+function selectRandomMove(moves) {
   let index = Math.floor(Math.random() * (moves.length - 1));
   let selected_move = moves[index];
 
@@ -923,22 +888,15 @@ function setDepth() {
   maxDepth = value;
 }
 // Alpha betha initialization
-function alpha_beta_search(calc_board, limit) {
+function alphaBetaSearch(currState, limit) {
   let alpha = Number.NEGATIVE_INFINITY;
   let beta = Infinity;
 
-  //Getting available moves for computer
-  let available_moves = get_available_moves(computer, calc_board);
+  //Getting available moves for cpu
+  let available_moves = getAvailableMoves(cpu, currState);
 
   //Getting max value for each available move
-  let max = minimax_alpabetha(
-    calc_board,
-    available_moves,
-    limit,
-    alpha,
-    beta,
-    true
-  );
+  let max = alphaBeta(currState, available_moves, limit, alpha, beta, true);
 
   //Fing all max moves
   let best_moves = [];
@@ -953,31 +911,20 @@ function alpha_beta_search(calc_board, limit) {
 
   //We use the function we created to make random movement incase we have many equal evaluated moves
   if (best_moves.length > 1) {
-    max_move = select_random_move(best_moves);
+    max_move = selectRandomMove(best_moves);
   }
 
   return max_move;
 }
 
-function computerMove() {
+function cpuMove() {
   // Copying the board
-  let simulated_board = copy_board(activeBoard);
+  let nextState = copyBoard(activeBoard);
 
   // Start alpha betha
-  let selected_move = alpha_beta_search(simulated_board, maxDepth);
-  // I suggest to drop this
-  // console.log(
-  //   "best move: " +
-  //     selected_move.from.col +
-  //     ":" +
-  //     selected_move.from.row +
-  //     " to " +
-  //     selected_move.to.col +
-  //     ":" +
-  //     selected_move.to.row
-  // );
+  let selected_move = alphaBetaSearch(nextState, maxDepth);
 
-  // Let the computer player moves
+  // Let the cpu player moves
   let pieceIndex = getPieceIndex(
     activeBoard.pieces,
     selected_move.from.row,
@@ -992,8 +939,8 @@ function computerMove() {
     1
   );
   moveCircle(selected_move.to, 1);
-  showBoardState();
-  // Analizing if computer wins if not we let the player move again
+  showGameState();
+  // Analizing if cpu wins if not we let the player move again
   let winner = getWinner(activeBoard);
   if (winner != 0) {
     activeBoard.gameOver = true;
@@ -1002,8 +949,9 @@ function computerMove() {
     activeBoard.delay = 0;
   }
 }
+
 //Analizing if there is an oportunity to capture more than one piece in a single turn
-function capture_available(available_moves) {
+function captureAvailable(available_moves) {
   let capture = false;
   for (let i = 0; i < available_moves.length; i++) {
     let move = available_moves[i];
@@ -1016,41 +964,36 @@ function capture_available(available_moves) {
   return capture;
 }
 // The minimax function
-function minimax_alpabetha(calc_board, moves, limit, alpha, beta, max) {
+function alphaBeta(currState, moves, limit, alpha, beta, max) {
   var v;
-  if (limit <= 0 && !capture_available(moves)) {
-    return eval(calc_board);
+  if (limit <= 0 && !captureAvailable(moves)) {
+    return eval(currState);
   }
   if (max) {
     let max = Number.NEGATIVE_INFINITY;
     if (moves.length > 0) {
       for (let i = 0; i < moves.length; i++) {
-        simulated_board = copy_board(calc_board);
-        let computer_move = moves[i];
+        nextState = copyBoard(currState);
+        let cpuMove = moves[i];
         let pieceIndex = getPieceIndex(
-          simulated_board.pieces,
-          computer_move.from.row,
-          computer_move.from.col
+          nextState.pieces,
+          cpuMove.from.row,
+          cpuMove.from.col
         );
-        let piece = simulated_board.pieces[pieceIndex];
-        simulated_board = movePiece(
-          simulated_board,
-          piece,
-          computer_move.from,
-          computer_move.to
-        );
-        let human_moves = get_available_moves(player, simulated_board);
-        let min_score = minimax_alpabetha(
-          simulated_board,
-          human_moves,
+        let piece = nextState.pieces[pieceIndex];
+        nextState = movePiece(nextState, piece, cpuMove.from, cpuMove.to);
+        let humanMoves = getAvailableMoves(player, nextState);
+        let minScore = alphaBeta(
+          nextState,
+          humanMoves,
           limit - 1,
           alpha,
           beta,
           !max
         );
-        moves[i].score = min_score;
-        if (min_score > max) {
-          max = min_score;
+        moves[i].score = minScore;
+        if (minScore > max) {
+          max = minScore;
         }
         if (max >= beta) {
           break;
@@ -1065,32 +1008,27 @@ function minimax_alpabetha(calc_board, moves, limit, alpha, beta, max) {
     let min = Infinity;
     if (moves.length > 0) {
       for (let i = 0; i < moves.length; i++) {
-        simulated_board = copy_board(calc_board);
-        let human_move = moves[i];
+        nextState = copyBoard(currState);
+        let humanMove = moves[i];
         let pieceIndex = getPieceIndex(
-          simulated_board.pieces,
-          human_move.from.row,
-          human_move.from.col
+          nextState.pieces,
+          humanMove.from.row,
+          humanMove.from.col
         );
-        let piece = simulated_board.pieces[pieceIndex];
-        simulated_board = movePiece(
-          simulated_board,
-          piece,
-          human_move.from,
-          human_move.to
-        );
-        let computer_moves = get_available_moves(computer, simulated_board);
-        let max_score = minimax_alpabetha(
-          simulated_board,
-          computer_moves,
+        let piece = nextState.pieces[pieceIndex];
+        nextState = movePiece(nextState, piece, humanMove.from, humanMove.to);
+        let cpuMoves = getAvailableMoves(cpu, nextState);
+        let maxScore = alphaBeta(
+          nextState,
+          cpuMoves,
           limit - 1,
           alpha,
           beta,
           !max
         );
 
-        if (max_score < min) {
-          min = max_score;
+        if (maxScore < min) {
+          min = maxScore;
         }
         moves[i].score = min;
         if (min <= alpha) {
@@ -1105,28 +1043,20 @@ function minimax_alpabetha(calc_board, moves, limit, alpha, beta, max) {
   }
   return v;
 }
-// Evaluationg all the possible movements we can do if we are in the middle of the
-// board we have less opportunities because the piece could be captured
-function evaluate_position(x, y) {
-  if (x == 0 || x == 7 || y == 0 || y == 7) {
-    return 5;
-  } else {
-    return 3;
-  }
-}
+
 // Eval function, here we analize different things in roder to determine what is the best or the bests movements
 // Some of the evaluations are :
 // The piece postion center or side
-// How many pieces the player and the computer have if the board we analize
-// have less computer pieces it is going to be best evaluated
+// How many pieces the player and the cpu have if the board we analize
+// have less cpu pieces it is going to be best evaluated
 function eval(targetBoard) {
   let sum = 0;
-  let computerPieces = 0;
-  let computer_kings = 0;
+  let cpuPieces = 0;
+  let cpuKings = 0;
   let humanPieces = 0;
-  let human_kings = 0;
-  let computer_pos_sum = 0;
-  let human_pos_sum = 0;
+  let humanKings = 0;
+  let cpuPosSum = 0;
+  let humanPosSum = 0;
 
   for (let i = 0; i < targetBoard.pieces.length; i++) {
     let piece = targetBoard.pieces[i];
@@ -1136,33 +1066,33 @@ function eval(targetBoard) {
         // Player pieces
         humanPieces += 1;
         if (Math.round(piece.state) === player) {
-          human_kings += 1;
+          humanKings += 1;
         }
-        let human_pos = evaluate_position(piece.col, piece.row);
-        human_pos_sum += human_pos;
+        let human_pos = evalPosition(piece.col, piece.row);
+        humanPosSum += human_pos;
       } else {
-        // Computer pieces
-        computerPieces += 1;
-        if (Math.round(piece.state) === computer) {
-          computer_kings += 1;
+        // cpu pieces
+        cpuPieces += 1;
+        if (Math.round(piece.state) === cpu) {
+          cpuKings += 1;
         }
-        let computer_pos = evaluate_position(piece.col, piece.row);
-        computer_pos_sum += computer_pos;
+        let cpu_pos = evalPosition(piece.col, piece.row);
+        cpuPosSum += cpu_pos;
       }
     }
   }
   // Making an average of all pieces
-  let pieceDifference = computerPieces - humanPieces;
-  let kingDifference = computer_kings - human_kings;
+  let pieceDifference = cpuPieces - humanPieces;
+  let kingDifference = cpuKings - humanKings;
   if (humanPieces === 0) {
     humanPieces = 0.00001;
   }
-  let avgHumanPos = human_pos_sum / humanPieces;
-  if (computerPieces === 0) {
-    computerPieces = 0.00001;
+  let avgHumanPos = humanPosSum / humanPieces;
+  if (cpuPieces === 0) {
+    cpuPieces = 0.00001;
   }
-  let avg_computer_pos = computer_pos_sum / computerPieces;
-  let avgPosDiff = avg_computer_pos - avgHumanPos;
+  let avg_cpu_pos = cpuPosSum / cpuPieces;
+  let avgPosDiff = avg_cpu_pos - avgHumanPos;
 
   let features = [pieceDifference, kingDifference, avgPosDiff];
   let weights = [100, 10, 1];
@@ -1175,4 +1105,14 @@ function eval(targetBoard) {
   }
   // return how good is the current board
   return eval;
+}
+
+// Evaluationg all the possible movements we can do if we are in the middle of the
+// board we have less opportunities because the piece could be captured
+function evalPosition(x, y) {
+  if (x == 0 || x == 7 || y == 0 || y == 7) {
+    return 5;
+  } else {
+    return 3;
+  }
 }
